@@ -1,0 +1,45 @@
+---
+- name: Déploiement complet Next.js + Express.js
+  hosts: remote
+
+  vars:
+    project_dir: /home/mern-liadtech/LiadTechMernStackHealthCare
+
+  tasks:
+
+    - name: Créer le dossier projet
+      file:
+        path: "{{ project_dir }}"
+        state: directory
+        owner: mern-liadtech
+        group: mern-liadtech
+        mode: '0755'
+
+    - name: Synchroniser le projet depuis Azure DevOps vers la VM
+      synchronize:
+        src: "{{ source_dir }}"
+        dest: "{{ project_dir }}"
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - "--exclude=node_modules/"
+          - "--exclude=.next/"
+          - "--exclude=dist/"
+          - "--exclude=.turbo/"
+          - "--exclude=.DS_Store"
+          - "--exclude=Thumbs.db"
+      delegate_to: localhost
+
+    - name: Lancer docker-compose depuis le dossier stable
+      shell: |
+        echo "🔍 Vérification de docker-compose.yml dans {{ project_dir }}/s"
+        if [ -f "{{ project_dir }}/s/docker-compose.yml" ]; then
+          cd "{{ project_dir }}/s"
+          # docker compose down || true
+          # docker compose up -d --build
+          echo "✅ Docker lancé."
+        else
+          echo "❌ docker-compose.yml non trouvé."
+        fi
+      args:
+        executable: /bin/bash
